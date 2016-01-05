@@ -1,0 +1,427 @@
+/*
+ * Ming Hung Juan's
+ * ~SLAPPITY~
+ */
+
+#include <Servo.h>
+
+//https://www.arduino.cc/en/Tutorial/toneMelody
+#include "pitches.h"
+
+Servo myservo;
+
+//LEDs start from right most to left
+int Led1Pin = 2; //The pin of the first LED from right to pin 2.
+int Led2Pin = 3; //The pin of the second LED from right to pin 3.
+int Led3Pin = 4; //...
+int Led4Pin = 5; //...
+int Led5Pin = 6;
+int Led6Pin = 7;
+int Led7Pin = 8;
+int Led8Pin = 9;
+int Led9Pin = 10;
+int Led10Pin = 11;
+int Led11Pin = 12;//The pin of the last LED from right to pin 12.
+
+int ButtonPin = 13; //Pin 13 for the button.
+
+int buzzer = A4; //Analog pin 4 for buzzer.
+
+int TESTMODE = 2046; //Will end the game at start up to test if binary score will show correctly, if the melody will play, and if the servo will swing back and forth before the game begins.
+
+//Will contain the player's current score. This score is cumulative for all players.
+//currentScore = TESTMODE if you want to test your components and lights if not, just start at 0. 
+int currentScore = TESTMODE;
+
+long randomMax; //Random maximum point in which player loses.
+
+int Direction; //Will hold the value for which direction LED will be lighting up.
+
+int buttonPressed = 0; //Will hold the count for how many times the current player has pressed the button.
+
+int numberOfPlayers = 2; //Hold the numbers player. (Can be changed to play with more than 2 players)
+
+int currentPlayer = 1; //Will hold value of which player's turn it is.
+
+//The state of the button the last time we checked.
+boolean old_val = LOW;
+
+//Levels of speed (Slowest, Slow, Fast, Fastest). Can change to change difficulty.
+int slowest = 500;
+int slow = 375;
+int fast = 300;
+int fastest = 250;
+
+int lightPressed;
+
+//Stores which LED is on.
+int LightPosition = 0;
+
+//Speed of the game. (Slowest = 500, Slow = 400, Fast = 350, Fastest = 300)
+int pause;
+
+//What time it was when we last moved the light.
+long lastMove = millis();
+
+//Melody was taken from https://www.arduino.cc/en/Tutorial/toneMelody
+// notes in the melody:
+int melody[] = {
+  NOTE_C4, NOTE_G3, NOTE_G3, NOTE_A3, NOTE_G3, 0, NOTE_B3, NOTE_C4
+};
+
+// note durations: 4 = quarter note, 8 = eighth note, etc.:
+int noteDurations[] = {
+  4, 8, 8, 4, 4, 4, 4, 4
+};
+///////////////////////////////////////////////////////////
+
+void setup()
+{
+  pinMode(Led1Pin, OUTPUT);
+  pinMode(Led2Pin, OUTPUT);
+  pinMode(Led3Pin, OUTPUT);
+  pinMode(Led4Pin, OUTPUT);
+  pinMode(Led5Pin, OUTPUT);
+  pinMode(Led6Pin, OUTPUT);
+  pinMode(Led7Pin, OUTPUT);
+  pinMode(Led8Pin, OUTPUT);
+  pinMode(Led9Pin, OUTPUT);
+  pinMode(Led10Pin, OUTPUT);
+  pinMode(Led11Pin, OUTPUT);
+  pinMode(buzzer, OUTPUT);
+  pinMode(ButtonPin, INPUT);
+
+  myservo.attach(A5);//Attachs the servo on A5.
+  myservo.write(15);//Set servo to 0 degrees.
+  delay(500); //Safety delay.
+  
+  Serial.begin(9600);
+}
+
+void loop()
+{
+  
+  //This section of code to move the light was from 
+  //juggleboy's "StopIt! LED Game (powered by arduino)" on instructables.com.
+  //Moves the light.
+  if(millis() - lastMove >= pause) 
+  {
+    lastMove = millis(); //Remember when we switched LED
+
+    //Light from right to left is Direction = 0 and left to right when Direction = 1
+    if(LightPosition==11)
+      Direction = 1;
+    else if (LightPosition==1)
+      Direction = 0;
+    
+    if(Direction == 1)
+      LightPosition--;
+    else
+      LightPosition++;
+    
+    move(LightPosition);//Update the light position.
+  }
+  //
+
+  
+  //When the player presses the button
+  if(digitalRead(ButtonPin) == HIGH && old_val == LOW)
+  {
+    //Single beep to indicate button pressed.
+    beep();
+    
+    //Increment count for the button pressed.
+    buttonPressed++;
+    
+    //Calculate and change speed base on which light position it is.
+    
+    //Green LED will +1 to current score but speeds up by two notches.
+    //If button is pressed on the green LEDs.
+    if(LightPosition == 1 || LightPosition == 3 || LightPosition == 9 || LightPosition == 11)
+    {
+      //Add 1 point to currentScore.
+      currentScore++;
+      
+      Serial.print("Green LED was hit... Current Score: ");
+      Serial.println(currentScore);
+      
+      //Blink the Led that the player stopped on.
+      blinkLED(LightPosition);
+      
+      //Speed up the game by two notches.
+      if(pause == slowest) //Slowest to Fast
+      {
+        pause = fast;
+      }
+      else if (pause == slow) //Slow to Fastest
+      {
+        pause = fastest;
+      }  
+      else if (pause == fast) //Fast to Fastest
+      {
+        pause = fastest;
+      } 
+      else if (pause == fastest) //Stays Fastest
+      {
+        pause = fastest;
+      }
+      
+    }
+
+    //Red LED will +2 to current score but speeds up by only 1 notch.
+    //If button is pressed on the red LEDs.
+    else if (LightPosition == 2 || LightPosition == 4 || LightPosition == 5 || LightPosition == 7 || LightPosition == 8 || LightPosition == 10)
+    {
+      //Add 2 point to currentScore.
+      currentScore+=2;
+      
+      Serial.print("Red LED was hit... Current Score: ");
+      Serial.println(currentScore);
+
+      //Blink the Led that the player stopped on.
+      blinkLED(LightPosition);  
+      
+      //Speed up the game by 1 notch.
+      if(pause == slowest) //Slowest to Slow.
+      {
+        pause = slow;
+      }
+      else if (pause == slow) //Slow to Fast.
+      {
+        pause = fast;
+      }  
+      else if (pause == fast) //Fast to Fastest
+      {
+        pause = fastest;
+      } 
+      else if (pause == fastest) //Stays Fastest
+      {
+        pause = fastest;
+      }
+      
+    }
+
+    //Blue LED will not add any points to current score but speeds up the game to Fastest.
+    //If button is pressed on the middle LED.
+    else if (LightPosition = 6)
+    {
+      Serial.print("Blue LED was hit... Current Score: ");
+      Serial.println(currentScore);
+
+      //Blink the Led that the player stopped on.
+      blinkLED(LightPosition);
+      
+      //Speed up the game by 1 notch.
+      if(pause == slowest) //Slowest to Fasest.
+      {
+        pause = fastest;
+      }
+      else if (pause == slow) //Slow to Fastest.
+      {
+        pause = fastest;
+      }  
+      else if (pause == fast) //Fast to Fastest.
+      {
+        pause = fastest;
+      } 
+      else if (pause == fastest) //Stays Fastest.
+      {
+        pause = fastest;
+      }
+      
+    }
+
+    //Show scores in binary.
+    showBinaryScore(currentScore);    
+    
+    if(currentScore >= randomMax) //If the pressed it at the wrong time, show their final score and start a new game.
+    {
+      //Prints Game over.
+      Serial.println("GAME OVER");
+      
+      //Prints current score.
+      Serial.print("Final Score : ");
+      Serial.println(currentScore);
+      
+      //Prints the random max.
+      Serial.print("Random Max was : ");
+      Serial.println(randomMax);
+
+      //Swing servo.
+      slapFace();
+
+      //Play losing melody.
+      lose();
+
+      //Begin new game.
+      newGame();
+    }
+
+    //After 3 turns.
+    if(buttonPressed == 3)
+    {
+      
+      //Will go on to the next player.
+      if(currentPlayer == numberOfPlayers)
+      {
+        //Goes back to player one after everyone has gone.
+        currentPlayer = 1;
+      }
+      else
+      {
+        //Go to next player.
+        currentPlayer++;
+      }
+      
+      //Resets the speed back to starting speed.
+      pause = slowest;
+      
+      //Resets buton pressed count for next player.
+      buttonPressed=0;
+      Serial.print("Player ");
+      Serial.print(currentPlayer);
+      Serial.println("'s turn..");
+      
+      //Double beep to indicate switch of player.
+      doubleBeep();
+    }
+    
+  }
+  
+  old_val = digitalRead(ButtonPin);
+
+}
+
+/************************************************/
+
+//Updates the light's position.
+void move(int LightPosition)
+{
+  //Turn off all LEDs
+  for (int x = Led1Pin; x <= Led11Pin; x++)
+  {
+    digitalWrite(x, LOW);
+  }
+
+//Turn on the LED
+digitalWrite(LightPosition + 1, HIGH);
+}
+
+//Starts a new game.
+void newGame()
+{
+  for(int i = 2; i < 13; i++)
+    digitalWrite(i, HIGH);
+    
+  buttonPressed = 0;
+  
+  //Generates random maximum points.
+  randomSeed(analogRead(0));
+  //random(x,y) will generate a random integer with lower bound x and upper bound y.
+  randomMax = random(6, 10);
+  Serial.print("Random Max:");
+  Serial.println(randomMax);
+  
+  LightPosition = 0;
+  pause = slowest;
+  Serial.println("New Game!");
+  Serial.println("Player 1's turn..");
+  
+  //Resets current score to 0.
+  currentScore = 0;
+
+  delay(1000);
+  for(int i = 2; i < 13; i++)
+    digitalWrite(i, LOW);
+
+  myservo.write(15);//Set servo to 15 degrees.
+  delay(500);
+}
+
+//Blinks LED.
+void blinkLED(int LightPosition)
+{
+  for (int x = 0; x <= 10; x++)
+  {
+    if(digitalRead(LightPosition + 1) == LOW)
+    {
+      digitalWrite(LightPosition + 1, HIGH);
+    }
+    else
+    {
+      digitalWrite(LightPosition + 1, LOW);
+    }
+    delay(200);
+   }
+}
+
+//Displays the current score in binary starting from right most LED is the LSD.
+void showBinaryScore(int currentScore){
+  
+  int LightPos = 2; //Will start with the first LED
+  
+  while(currentScore/2 != 0){
+    
+    if(currentScore%2 == 1)
+      digitalWrite(LightPos, HIGH);
+    else
+      digitalWrite(LightPos, LOW);
+      
+    currentScore = currentScore/2;
+    LightPos++;
+  }
+
+  if(currentScore==1)
+    digitalWrite(LightPos, HIGH);
+
+  delay(2000);
+
+
+  for (int i = 2;i <13; i++)
+    digitalWrite(i, LOW);
+  delay(200);
+
+}
+
+//Causes servo holding the glove to swing back and forth.
+void slapFace(){
+  for(int i = 0; i < 10; i++){
+    myservo.write(15);//goes to 15 degrees 
+    delay(225);//wait for a second
+    myservo.write(300);//back to 0 degrees 
+    delay(225);//wait for a second
+  }
+}
+
+//Makes a quick single beep
+void beep(){
+  tone(buzzer, 500, 150);
+}
+
+//Makes two beeps to indicate change of player.
+void doubleBeep(){
+  beep();
+  delay(250);
+  beep();
+  delay(1500);
+}
+
+//Taken from https://www.arduino.cc/en/Tutorial/toneMelody
+void lose(){
+  // iterate over the notes of the melody:
+  for (int thisNote = 0; thisNote < 8; thisNote++) {
+
+    // to calculate the note duration, take one second
+    // divided by the note type.
+    //e.g. quarter note = 1000 / 4, eighth note = 1000/8, etc.
+    int noteDuration = 1000 / noteDurations[thisNote];
+    tone(buzzer, melody[thisNote], noteDuration);
+
+    // to distinguish the notes, set a minimum time between them.
+    // the note's duration + 30% seems to work well:
+    int pauseBetweenNotes = noteDuration * 1.30;
+    delay(pauseBetweenNotes);
+    // stop the tone playing:
+    noTone(buzzer);
+  }
+}
