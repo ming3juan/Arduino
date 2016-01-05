@@ -1,4 +1,4 @@
-Materials:
+Materials needed:
 •	Ardunio Uno
 •	6 5mm Red LEDs (RD)
 •	4 5mm Green LEDs (GRN)
@@ -14,7 +14,8 @@ Materials:
 •	Blown up rubber glove (the bigger the better!)  
 
 
-INSTRUCTIONS
+~INSTRUCTION~
+
 Setting Up Breadboard:
 Attach a jumper cable from the GND of the Arduino Uno to the negative rails on the breadboard. 
 Attach another jumper cable from the 5V slot to one of the positive rail of the breadboard.
