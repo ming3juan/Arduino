@@ -1,0 +1,11 @@
+Slappity is a game in which a random MAX value is generated when the game starts. 
+Two player will have 3 turns each to accumulate scores together till the random MAX value is hit.
+After each turn the score is displayed in binary with the right most LED as the least significant digit (2^0). 
+A single beep will mean the player has played one turn and two beeps will indicate to switch player.
+The first player to hit the randomly generated MAX score loses and will be slapped in the face with a rubber gloves and then a melody will be played and game restarts. 
+
+The change in speed at which the light moves and how much the score will accumulate each turn goes accordingly:
+RED LED will increase the total score by 2, but the speed will stay at the current speed.
+GREEN LED will increase the total score by 1 but the speed will only increase by one notch.
+BLU LED will not increase the total score, but the speed will jump to the fastest speed.
+There are 4 speed levels: {slowest, slow, fast, fastest}.
